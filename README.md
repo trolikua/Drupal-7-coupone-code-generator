@@ -1,15 +1,15 @@
-##Drupal 7 simple coupone code generator
-##Features:
+## Drupal 7 simple coupone code generator
+## Features:
 - generating one-time/timeless keys;
 - butch creating;
 - keys admining page;
 - adding description and prefix for keys;
 - using by-key access to `Webform`s.
-##How to use?
+## How to use?
 - Install and set enable as usual.
 - Follow to the `admin/code-generator` for generating any amount of keys.
 - Follow to the `admin/code-generator/list` for the codes viewing.
-###If you want to use the module hand-by-hand with `Webform` for access by key to any form/forms
+### If you want to use the module hand-by-hand with `Webform` for access by key to any form/forms
 - add for needed form text field with **form-key** `code_field` and set as **Required**. Name the field as you want.
 - if you need hide any other fields for viewing before key passing, set after the field `Page break` `Webform` Component.
 
