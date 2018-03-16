@@ -1,0 +1,51 @@
+<?php
+/**
+ * Installation file for the module
+ * */
+function code_generator_schema() {
+    $schema = array();
+    $schema['code_generator'] = array(
+        'description' => 'Table for the module "Code generator"',
+        'fields' => array(
+            'code_id' => array(
+                'description' => 'The primary ID key',
+                'type' => 'serial',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'code_prefix' => array(
+                'description' => 'Custom prefix for codes',
+                'type' => 'varchar',
+                'length' => 14,
+                'not null' => TRUE,
+                'default' => '',
+            ),
+            'code' => array(
+                'description' => 'Main part of generated code',
+                'type' => 'varchar',
+                'length' => 12,
+                'not null' => TRUE,
+                'default' => '',
+            ),
+            'one_time' => array(
+                'description' => 'Boolean. The code will use one-time or many times',
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0,
+                'size' => 'tiny',
+            ),
+            'code_title' => array(
+                'description' => 'The title for the generated code.',
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => TRUE,
+                'default' => '',
+            ),
+        ),
+        'primary key' => array('code_id'),
+    );
+    return $schema;
+}
+function code_generator_uninstall() {
+    drupal_uninstall_schema('code_generator');
+}

@@ -1,0 +1,223 @@
+<?php
+/**
+* @file
+* Simple code generator
+*/
+//menu and page creating
+function code_generator_menu() {
+    $items['admin/code-generator'] = array(
+        'title' => 'Code generator',
+        'description' => 'Simple generator for access codes',
+        'menu_name' => 'management',
+        'position' => 'right',
+        'weight' => 100,
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('code_generator_page_form'),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+    $items['admin/code-generator/generator'] = array(
+        'title' => 'Code generator',
+        'description' => 'Simple generator for access codes',
+        'menu_name' => 'management',
+//        'position' => 'right',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('code_generator_page_form'),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+    );
+    $items['admin/code-generator/list'] = array(
+        'title' => 'List of codes',
+        'description' => 'Early generated codes',
+        'menu_name' => 'management',
+        'position' => 'right',
+        'page callback' => 'codes_list_page',
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_LOCAL_TASK,
+    );
+    $items['admin/code-generator/%/delete'] = array(
+        'title callback' => 'code_generator_delete_page_title',
+        'title arguments' => array(2),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('code_generator_delete_form', 2),
+        'access arguments' => array('administer site configuration'),
+    );
+
+    return $items;
+}
+//code generator
+function generateRandomString($length = 10) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyz';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+}
+//code generator form
+function code_generator_page_form($form, $form_state) {
+    $form = array();
+    $form['options'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Code generator options'),
+        //'#attributes' => array('class' => array('container-inline')),
+    );
+    $form['options']['prefix'] = array(
+        '#type' => 'textfield',
+        '#size' => '14',
+        '#title' => 'Code prefix',
+        '#attributes' => array('placeholder' => 'prefix')
+    );
+    $form['options']['amount'] = array(
+        '#type' => 'textfield',
+        '#size' => '3',
+        '#title' => 'Amount of codes',
+        '#default_value' => t('1'),
+    );
+    $form['options']['is_one_time'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('One-time code'),
+    );
+    $form['options']['description'] = array(
+        '#type' => 'textarea',
+        '#rows' => '3',
+        '#attributes' => array('placeholder' => 'Description for generated code')
+    );
+    $form['options']['submit'] = array(
+        '#type' => 'submit',
+        '#value' => 'Generate'
+    );
+    return $form;
+}
+// validate form
+function code_generator_page_form_validate ($form, &$form_state) {
+
+}
+// code generator submit form
+function code_generator_page_form_submit ($form, &$form_state) {
+
+    $amount = $form_state['values']['amount'];
+    $result = '';
+    for ($i = 1; $i<=$amount; $i++) {
+        if ($form_state['values']['prefix']) {
+            $prefix = strtoupper($form_state['values']['prefix']).'__';
+            $result .= $prefix;
+        }
+        else $prefix = 'NO_PREFIX__';
+        if ($form_state['values']['description']) {
+            $description = $form_state['values']['description'];
+        }
+        else $description='';
+        $generated_code = generateRandomString();
+        $result .= $generated_code.' ';
+        db_insert('code_generator')->fields(array(
+            'code_prefix' => $prefix,
+            'code' => $generated_code,
+            'one_time' => $form_state['values']['is_one_time'],
+            'code_title' => $description,
+        ))
+            ->execute();
+    }
+    drupal_set_message('Your code/codes: '.$result);
+}
+//page for list of the generated codes
+function codes_list_page () {
+    function check_one_time ($item) {
+        return ($item == 0) ? 'no' : 'yes';
+    }
+    $rows = array();
+    $header = array(
+        t('ID'),
+        t('Generated code'),
+        t('Is one-time'),
+        t('Description'),
+        t('Delete'),
+    );
+    $query = db_select('code_generator', 't')->fields('t', array(
+        'code_id', 'code_prefix', 'code', 'one_time', 'code_title'
+    ))->orderBy('code_id', 'DESC')->execute();
+    while ($value = $query->fetchAssoc()) {
+        $rows[] = array(
+            $value['code_id'],
+            $value['code_prefix'].$value['code'],
+            check_one_time($value['one_time']),
+            $value['code_title'],
+            l(t('Delete'), "admin/code-generator/{$value['code_id']}/delete")
+        );
+    }
+    return theme('table', array('header' => $header, 'rows' => $rows));
+}
+//delete item action from list of codes
+function code_generator_delete_form($form, $form_state) {
+    $form = array();
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Submit'),
+    );
+    $form['cancel'] = array(
+        '#markup' => l(t('Cancel'), 'admin/code-generator/submit'),
+    );
+    return $form;
+}
+function code_generator_delete_page_title($id) {
+    $placeholders = array('id' => $id);
+    $number = db_query("SELECT `code_id` FROM {code_generator} WHERE `code_id` = :id", $placeholders)->fetchField();
+    return t('Are you sure you want to delete item with ID "@num"?', array('@num' => $number));
+}
+function code_generator_delete_form_submit($form, &$form_state) {
+    $id = $form_state['build_info']['args'][0];
+    $result = db_delete('code_generator')
+        ->condition('code_id', $id)
+        ->execute();
+    $placeholders = array('@id' => $id);
+    if ($result) {
+        drupal_set_message(t('Record # @id successfully removed.', $placeholders));
+    }
+    else {
+        drupal_set_message(t('Record # @id is undefined.', $placeholders), 'warning');
+    }
+    $form_state['redirect'] = 'admin/code-generator/list';
+}
+//initialisation for validator
+function code_generator_form_alter( &$form, &$form_state, $form_id ){
+    if ((isset($form['submitted']['code_field']) && ($form['#node']->type === 'webform'))) {
+        $form['#validate'][] = 'code_generator_form_validate';
+   }
+}
+//validator for "code_field"
+function code_generator_form_validate(&$form, &$form_state) {
+    if(!empty($form_state['values']['submitted']['code_field'])){
+       $code_value = $form_state['values']['submitted']['code_field'];
+       $result = code_generator_compare_values ($code_value);
+       if ($result === TRUE) {
+           drupal_set_message('The code is OK');
+           return TRUE;
+       }
+       else {
+           form_error($form, t('The code is wrong. Please try again.'));
+           return FALSE;
+       }
+    }
+    return FALSE;
+}
+// Compare entered value with DB. If the code is one-time, delete from DB.
+function code_generator_compare_values ($value) {
+    $result = db_select('code_generator', 'c')->fields('c')->execute();
+    foreach ($result as $node) {
+        $items_prefix = $node->code_prefix;
+        $items_code = $node->code;
+        $items_is_one_time = $node->one_time;
+        $items_id = $node->code_id;
+        if ($items_prefix.$items_code === $value) {
+            if($items_is_one_time === '1') {
+                $query = db_delete('code_generator');
+                $query->condition('code_id', $items_id, '=');
+                $code_deleted = $query->execute();
+                drupal_set_message(t("The code is one-tine and was deleted"), 'warning');
+            }
+            return TRUE;
+        }
+    }
+    return FALSE;
+}

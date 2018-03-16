@@ -1,0 +1,5 @@
+name = Key Generator
+description = Simple key generator.
+core = 7.x
+version = 1.0
+package = Custom
