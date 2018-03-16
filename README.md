@@ -1,4 +1,4 @@
-## Drupal 7 simple coupone code generator
+## Drupal 7 simple coupone code generator module.
 ## Features:
 - generating one-time/timeless keys;
 - butch creating;
