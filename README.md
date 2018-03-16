@@ -1,4 +1,4 @@
-## Drupal 7 simple coupone code generator module.
+## Drupal 7 simple key generator module for Webform access.
 ## Features:
 - generating one-time/timeless keys;
 - butch creating;
